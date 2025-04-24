@@ -1,0 +1,154 @@
+function DSPFUNCTION_compare_audio_spectra()
+
+% prompts user to select audio file, 'uigetfile' opens file browser window, '*.wav'
+% specifies that only wav files will be recognised
+[file1,path1] = uigetfile('*.wav', 'Select first audio file');
+[file2,path2] = uigetfile('*.wav', 'Select second audio file');
+
+% Read the audio files, loading them into memory using 'audioread'
+[x1,fs1] = audioread(fullfile(path1,file1)); % 'x1' = Audio samples, 'fs1' = sample rate
+[x2,fs2] = audioread(fullfile(path2,file2));
+
+% Determines if files selected is mono or stereo
+mono1 = size(x1,2) == 1; % 'size(x1, 2)' checks number of columns in 'x1' and '== 1' checks for mono
+mono2 = size(x2,2) == 1;
+
+% Choose analysis frequency range
+prompt = 'Enter maximum frequency to display (Hz): '; %'prompt is the string used to store the question
+f_max = input(prompt); %'f_max =input(prompt)' shows that the input in response to the question defines the maximum frequency
+
+%% Magnitude Spectrum
+
+% Magnitude Spectrum for Audio 1
+figure;
+sgtitle(['Magnitude Spectrum - ', file1]); % This creates a figure with the main title of 'Magnitude spectrum -' and then the name of the file
+
+if mono1 % Prepares Magnitude Spectrum for if selected audio is mono or stereo
+    subplot(2,1,1); % Designates position of subplot within the figure
+    plot_magnitude_spectrum(x1(:,1), fs1, f_max); % Uses helper function to plot graph using audio samples, sample rate and maximum frequency
+    title('Mono Channel'); % Title of Subplot
+else
+    subplot(2,1,1); % Designates position of subplot within the figure
+    plot_magnitude_spectrum(x1(:,1), fs1, f_max); % Uses helper function to plot graph using audio samples, sample rate and maximum frequency from the left channel '(:,1)'
+    title('Left Channel');
+    subplot(2,1,2); % Designates position of subplot within the figure
+    plot_magnitude_spectrum(x1(:,2), fs1, f_max); % Uses helper function to plot graph using audio samples, sample rate and maximum frequency from the Right channel '(:,2)'
+    title('Right Channel');
+end
+
+% Magnitude Spectrum for Audio 2
+figure;
+sgtitle(['Magnitude Spectrum - ', file2]); 
+
+if mono2
+    subplot(2,1,1);
+    plot_magnitude_spectrum(x2(:,1), fs2, f_max);
+    title('Mono Channel');
+else
+    subplot(2,1,1);
+    plot_magnitude_spectrum(x2(:,1), fs2, f_max);
+    title('Left Channel');
+    subplot(2,1,2);
+    plot_magnitude_spectrum(x2(:,2), fs2, f_max);
+    title('Right Channel');
+end
+
+%% Phase Spectrum
+
+% Phase Spectrum For Audio 1
+figure;
+sgtitle(['Phase Spectrum - ', file1]); % This creates a figure with the main title of 'Phase spectrum -' and then the name of the file
+
+if mono1  % Prepares Magnitude Spectrum for if selected audio is mono or stereo
+    subplot(2,1,1);  % Designates position of subplot within the figure
+    plot_phase_spectrum(x1(:,1), fs1, f_max); % Uses helper function to plot graph using audio samples, sample rate and maximum frequency
+    title('Mono Channel'); % Title of subplot
+else
+    subplot(2,1,1); % Designates position of subplot within the figure
+    plot_phase_spectrum(x1(:,1), fs1, f_max); % Uses helper function to plot graph using audio samples, sample rate and maximum frequency of left channel '(:,1)'
+    title('Left Channel'); % Title of subplot
+    subplot(2,1,2); % Designates position of subplot within the figure
+    plot_phase_spectrum(x1(:,2), fs1, f_max); % Uses helper function to plot graph using audio samples, sample rate and maximum frequency of right channel '(:,2)'
+    title('Right Channel'); % Title of subplot
+end
+
+% Phase Spectrum For Audio 2
+figure;
+sgtitle(['Phase Spectrum - ', file2]);
+
+if mono2
+    subplot(2,1,1);
+    plot_phase_spectrum(x2(:,1), fs2, f_max);
+    title('Mono Channel');
+else
+    subplot(2,1,1);
+    plot_phase_spectrum(x2(:,1), fs2, f_max);
+    title('Left Channel');
+    subplot(2,1,2);
+    plot_phase_spectrum(x2(:,2), fs2, f_max);
+    title('Right Channel');
+end
+
+%% STFT (Spectrogram)
+
+% Spectrogram For Audio 1
+figure;
+sgtitle(['Spectrogram - ', file1]); % This creates a figure with the main title of 'Spectrogram -' and then the name of the file
+
+if mono1 
+    subplot(2,1,1); % Designates position of subplot within the figure
+    spectrogram(x1(:,1),256,200,256,fs1,'yaxis');  % This command plots the spectrogram of a mono file 'x1(:,1)' using 256-sample windows, 200-sample overlap, 256-point Fast Fourier Transform, at sampling rate fs1, with frequency shown on the vertical axis in Hz.
+    title('Mono Channel'); % Title of subplot
+else
+    subplot(2,1,1); % Designates position of subplot within the figure
+    spectrogram(x1(:,1),256,200,256,fs1,'yaxis'); % This command plots the spectrogram of the left channel 'x1(:,1)' using 256-sample windows, 200-sample overlap, 256-point Fast Fourier Transform, at sampling rate fs1, with frequency shown on the vertical axis in Hz.
+    title('Left Channel'); % Title of subplot
+    subplot(2,1,2); % Designates position of subplot within the figure
+    spectrogram(x1(:,2),256,200,256,fs1,'yaxis');  % This command plots the spectrogram of the Right channel 'x1(:,2)' using 256-sample windows, 200-sample overlap, 256-point Fast Fourier Transform, at sampling rate fs2, with frequency shown on the vertical axis in Hz.
+    title('Right Channel'); % Title of subplot
+end
+
+% Spectrogram For Audio 2
+figure;
+sgtitle(['Spectrogram - ', file2]); 
+
+if mono2
+    subplot(2,1,1);
+    spectrogram(x2(:,1),256,200,256,fs2,'yaxis');
+    title('Mono Channel');
+else
+    subplot(2,1,1);
+    spectrogram(x2(:,1),256,200,256,fs2,'yaxis');
+    title('Left Channel');
+    subplot(2,1,2);
+    spectrogram(x2(:,2),256,200,256,fs2,'yaxis');
+    title('Right Channel');
+end
+
+end
+
+% These are helper functions used to simplify code included in the main
+% function file
+function plot_magnitude_spectrum(x, fs, f_max) % takes three inputs (Audio Signal, Sample rate, Max frequency)
+    N = length(x); % 'N' = how many samples are in 'x' (FFT output size is determined by this)
+    X = fft(x); % Fast Fourier Transform, breaks down the time signal into all its frequency components
+    X_mag = abs(X)/N; % measures the magnitude of each frequency and then normalises it to contain scale
+    f = (0:N-1)*(fs/N); % builds frequency axis that matches FFT to Hz
+    plot(f,20*log10(X_mag)); % Plots the magnitudes of the frequencies but not before converting to decibels '20*log10'
+    xlabel('Frequency (Hz)'); % Labels x axis
+    ylabel('Magnitude (dB)'); % Labels y axis
+    xlim([0 f_max]); %determines how much of the frequency range is shown based on 0 - max frequency chosen by user
+    grid on; % Adds a grid to the plot to make reading it easier
+end
+
+function plot_phase_spectrum(x, fs, f_max) % takes three inputs (Audio Signal, Sample rate, Max frequency)
+    N = length(x);  % 'N' = how many samples are in 'x' (FFT output size is determined by this)
+    X = fft(x); % Fast Fourier Transform, breaks down the time signal into all its frequency components
+    X_phase = unwrap(angle(X)); % 'angle(X)' finds the phase of each frequency whilst 'unwrap()' smooths phase depiction to better match signal
+    f = (0:N-1)*(fs/N);  % builds frequency axis that matches FFT to Hz
+    plot(f,X_phase); % Plots the phase (Radians) against the frequency (Hz)
+    xlabel('Frequency (Hz)'); % Labels x axis
+    ylabel('Phase (radians)'); % Labels y axis
+    xlim([0 f_max]); %determines how much of the frequency range is shown based on 0 - max frequency chosen by user
+    grid on;  % Adds a grid to the plot to make reading it easier
+end

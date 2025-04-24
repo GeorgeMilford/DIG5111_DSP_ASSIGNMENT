@@ -1,0 +1,110 @@
+function DSPFUNCTION_filter_audio_file()
+
+% This function allows the user to select an audio file, design a filter
+% (lowpass, highpass, bandpass, or bandstop) using FIR or IIR topology, 
+% apply the filter, and save the result as a new WAV file.
+
+% 1. Select audio file
+[file,path] = uigetfile('*.wav', 'Select audio file to filter'); % Opens a file browser window that only allows users to select '.wav' files
+if isequal(file,0) 
+    disp('User cancelled file selection.');
+    return;
+end % Canels script if user presses cancel on browser window
+[x,fs] = audioread(fullfile(path,file)); % Reads '.wav' file, x = audio samples fs = sample rate
+
+% 2. Get filter settings from user
+disp('Select filter TYPE:');
+disp('1 = Lowpass');
+disp('2 = Highpass');
+disp('3 = Bandpass');
+disp('4 = Bandstop');
+filter_type_choice = input('Enter filter type (1-4): '); % Prompts the user to choose filter type based on 4 selections, stored in the function 'filter_type_choice'
+
+disp('Select filter TOPOLOGY:');
+disp('1 = FIR (Windowed Sinc)');
+disp('2 = IIR (Butterworth)');
+disp('3 = IIR (Chebyshev Type I)');
+topology_choice = input('Enter topology (1-3): '); % Prompts the user to choose filter topology based on 3 selections, stored in the function 'topology_choice'
+
+% Prompts user to select desired cutoff frequencies
+if filter_type_choice == 3 || filter_type_choice == 4
+    % Bandpass or Bandstop needs TWO cutoff frequencies (low and high
+    % cutoff)
+    f1 = input('Enter lower cutoff frequency (Hz): ');
+    f2 = input('Enter higher cutoff frequency (Hz): ');
+    Wn = [f1 f2]/(fs/2); % normalises cutoff frequencies
+else
+    % Lowpass or Highpass needs ONE cutoff frequency
+    fc = input('Enter cutoff frequency (Hz): ');
+    Wn = fc/(fs/2); % normalises inputted cutoff frequency
+end
+
+order = input('Enter filter order (suggest 4-10 for IIR, 30-100 for FIR): '); %Prompts user to input order of the filter (Higher=STeeper)
+
+% 3. Design the filter
+if topology_choice == 1 % (finite Impulse response)
+    % FIR filter using fir1 function
+    switch filter_type_choice
+        case 1
+            b = fir1(order, Wn, 'low');
+        case 2
+            b = fir1(order, Wn, 'high');
+        case 3
+            b = fir1(order, Wn, 'bandpass');
+        case 4
+            b = fir1(order, Wn, 'stop');
+    end
+    a = 1; % FIR filters always have denominator 1
+else
+    % IIR filter
+    switch topology_choice % uses built in matlab functions, if Butterworth, use butter(). If Chebyshev, use cheby1() (with 1 dB ripple in passband). Gets correct string ('low', 'high', 'bandpass', 'stop') from a helper function.
+        case 2
+            % Butterworth
+            [b,a] = butter(order, Wn, get_filter_string(filter_type_choice));
+        case 3
+            % Chebyshev Type I (1dB ripple in passband)
+            [b,a] = cheby1(order, 1, Wn, get_filter_string(filter_type_choice));
+    end
+end
+
+% 4. Plot the filter response
+figure;
+freqz(b,a,1024,fs); % Draws a graph showing how the filter behaves (Magnitude vs frequency, Phase vs frequency) 'freqz()' shows the shape of the filter.
+title('Designed Filter Frequency Response'); 
+
+% 5. Apply the filter
+if size(x,2) > 1
+    % checks if the audio file is stereo
+    y(:,1) = filter(b,a,x(:,1));
+    y(:,2) = filter(b,a,x(:,2)); %filters left and right channels seperately
+else
+    % if its mono just filters once
+    y = filter(b,a,x);
+end
+
+% 6. Save the filtered audio
+output_filename = 'filteredsig.wav';
+audiowrite(output_filename,y,fs);
+disp(['Filtered audio saved as ', output_filename]); % this part saves the filtered audio as 'filteredsig.wav' and confirms the save to the user
+
+% 7. Optional: playback
+choice = input('Play filtered audio? (1=yes, 0=no): ');
+if choice == 1
+    sound(y,fs); % this gives the user the chance to listen to the filtered signal straight away
+end
+
+end
+
+% Helper function to map user input to filter string
+function filt_str = get_filter_string(choice) % Small function to convert numbers 1-4 into proper words MATLAB understands.
+    switch choice
+        case 1
+            filt_str = 'low';
+        case 2
+            filt_str = 'high';
+        case 3
+            filt_str = 'bandpass';
+        case 4
+            filt_str = 'stop';
+    end % Matches the number inputted by user to the word for the filter type
+end
